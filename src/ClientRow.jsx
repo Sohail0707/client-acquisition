@@ -35,11 +35,11 @@ export default function ClientRow({ client: c, autoFocus, onChange, onAddImages,
   const set = (field) => (value) => onChange(c.id, field, value);
   return (
     <tr>
-      <td><Field value={c.name} onChange={set("name")} autoFocus={autoFocus} /></td>
-      <td><LinkField value={c.profile} onChange={set("profile")} /></td>
-      <td><Field type="email" value={c.email} onChange={set("email")} /></td>
-      <td><LinkField value={c.website} onChange={set("website")} /></td>
-      <td><Field value={c.industry} onChange={set("industry")} /></td>
+      <td className="name"><Field value={c.name} onChange={set("name")} autoFocus={autoFocus} /></td>
+      <td className="profile"><LinkField value={c.profile} onChange={set("profile")} /></td>
+      <td className="email"><Field type="email" value={c.email} onChange={set("email")} /></td>
+      <td className="website"><LinkField value={c.website} onChange={set("website")} /></td>
+      <td className="industry"><Field value={c.industry} onChange={set("industry")} /></td>
       <td>
         <select className="status" data-s={c.status} value={c.status} onChange={(e) => set("status")(e.target.value)}>
           {STATUSES.map((s) => (
