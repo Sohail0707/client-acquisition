@@ -73,3 +73,17 @@ tr:hover .del, .del:focus { opacity: 1; }
 .del:hover { color: var(--danger); filter: none; }
 
 .empty { padding: 48px; text-align: center; color: var(--muted); }
+
+a.button {
+  display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+  border-radius: 9px; padding: 9px 16px; font-weight: 500;
+}
+a.button:hover { filter: brightness(0.95); }
+.signout { color: var(--muted); text-decoration: none; font-size: 13px; padding: 0 4px; }
+.signout:hover { color: var(--text); }
+.signin {
+  max-width: 360px; margin: 20vh auto; padding: 32px; text-align: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+}
+.signin h1 { margin: 0 0 6px; }
+.signin p { color: var(--muted); margin: 0 0 20px; }

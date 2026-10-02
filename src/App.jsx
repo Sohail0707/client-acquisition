@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api } from "./api.js";
+import { api, UnauthorizedError } from "./api.js";
 import { STATUSES, cap } from "./constants.js";
 import ClientRow from "./ClientRow.jsx";
 
@@ -12,10 +12,20 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("");
   const [focusId, setFocusId] = useState(null);
+  const [user, setUser] = useState(null);
+  const [signedOut, setSignedOut] = useState(false);
   const timers = useRef({});
 
+  const fail = (e, prefix = "") => (e instanceof UnauthorizedError ? setSignedOut(true) : setError(prefix + e.message));
+
   useEffect(() => {
-    api.list().then(setClients).catch((e) => setError(e.message)).finally(() => setLoading(false));
+    Promise.all([api.me(), api.list()])
+      .then(([me, list]) => {
+        setUser(me.login);
+        setClients(list);
+      })
+      .catch(fail)
+      .finally(() => setLoading(false));
   }, []);
 
   const visible = useMemo(() => {
@@ -32,7 +42,7 @@ export default function App() {
     const key = id + field;
     clearTimeout(timers.current[key]);
     timers.current[key] = setTimeout(() => {
-      api.update(id, { [field]: value }).catch((e) => setError(`Save failed: ${e.message}`));
+      api.update(id, { [field]: value }).catch((e) => fail(e, "Save failed: "));
     }, 400);
   }
 
@@ -44,7 +54,7 @@ export default function App() {
       setClients((cs) => [c, ...cs]);
       setFocusId(c.id);
     } catch (e) {
-      setError(e.message);
+      fail(e);
     }
   }
 
@@ -54,7 +64,7 @@ export default function App() {
       await api.remove(id);
       setClients((cs) => cs.filter((c) => c.id !== id));
     } catch (e) {
-      setError(e.message);
+      fail(e);
     }
   }
 
@@ -66,6 +76,16 @@ export default function App() {
     a.download = "clients.csv";
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  if (signedOut) {
+    return (
+      <div className="signin">
+        <h1>Client Tracker</h1>
+        <p>Sign in to continue.</p>
+        <a className="button" href="/auth/login">Sign in with GitHub</a>
+      </div>
+    );
   }
 
   return (
@@ -83,6 +103,9 @@ export default function App() {
         </select>
         <button className="ghost" onClick={exportCsv}>Export CSV</button>
         <button onClick={add}>+ Add client</button>
+        {user && (
+          <a className="signout" href="/auth/logout" title={`Signed in as ${user}`}>Sign out</a>
+        )}
       </header>
 
       {error && <div className="error" onClick={() => setError("")}>{error}</div>}
