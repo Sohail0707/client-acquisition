@@ -24,7 +24,7 @@ body {
 }
 input, textarea, select, button { font: inherit; color: inherit; }
 
-main { max-width: 2200px; margin: 0 auto; padding: 12px 24px 60px; }
+main { max-width: 1440px; margin: 0 auto; padding: 12px 24px 60px; }
 header {
   position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
   padding: 16px 0 14px; margin-bottom: 4px;
@@ -42,33 +42,40 @@ button.ghost { background: var(--card); color: var(--text); border: 1px solid va
 
 .error { background: var(--danger); color: #fff; border-radius: 9px; padding: 8px 12px; margin-bottom: 12px; cursor: pointer; }
 
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; table-layout: auto; }
-th {
-  text-align: left; font-size: 11.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--muted); padding: 11px 12px; border-bottom: 1px solid var(--line); white-space: nowrap;
+/* Desktop: one grid row per client. Tablet and below: each row becomes a card (see media queries at the end). */
+.list { background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+.list-head, .row {
+  display: grid; column-gap: 8px; padding: 0 44px 0 10px;
+  grid-template-columns: minmax(160px, 1.15fr) minmax(240px, 1.75fr) 130px minmax(210px, 1.45fr) minmax(240px, 1.75fr);
 }
-td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
-tbody tr:last-child td { border-bottom: 0; }
-tbody tr:hover { background: var(--hover); }
-
-td input, td textarea {
-  width: 100%; min-width: 110px; display: block; background: transparent; border: 1px solid transparent;
-  border-radius: 7px; padding: 6px 7px; outline: none; resize: none; overflow: hidden;
+.list-head {
+  font-size: 11.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--muted); padding-top: 11px; padding-bottom: 11px; border-bottom: 1px solid var(--line);
 }
-td input:focus, td textarea:focus { border-color: var(--accent); background: var(--card); }
-/* --w-* are set from the longest value in each column (see App.jsx). */
-td.name { min-width: max(150px, var(--w-name, 0px)); }
-td.profile { min-width: max(190px, var(--w-profile, 0px)); }
-td.email { min-width: max(210px, var(--w-email, 0px)); }
-td.website { min-width: max(190px, var(--w-website, 0px)); }
-td.industry { min-width: max(120px, var(--w-industry, 0px)); }
-td.message { min-width: 240px; width: 18%; }
-td.remarks { min-width: 260px; width: 22%; }
+.list-head > div { padding: 0 7px; }
+.row { position: relative; padding-top: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.row:hover { background: var(--hover); }
+.cell { min-width: 0; }
 
-.link { display: flex; align-items: center; gap: 2px; }
-.link a { color: var(--accent); text-decoration: none; padding: 0 6px; font-size: 15px; visibility: hidden; }
-.link a.on { visibility: visible; }
+.cell input, .cell textarea {
+  width: 100%; display: block; background: transparent; border: 1px solid transparent;
+  border-radius: 7px; padding: 6px 7px; outline: none; resize: none; overflow: hidden; text-overflow: ellipsis;
+}
+.cell input:focus, .cell textarea:focus { border-color: var(--accent); background: var(--card); }
+.cell[data-label]::before {
+  content: attr(data-label); display: none; padding: 0 8px 2px;
+  font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+}
+
+.client input.name { font-weight: 600; }
+.client input.industry { font-size: 13px; color: var(--muted); padding-top: 2px; padding-bottom: 4px; }
+
+.contact-field { display: flex; align-items: center; }
+.contact-field svg { flex: none; width: 14px; height: 14px; margin-left: 6px; color: var(--muted); }
+.contact-field input { flex: 1; min-width: 0; padding-top: 4px; padding-bottom: 4px; }
+.contact-field a { flex: none; color: var(--accent); text-decoration: none; padding: 0 6px; font-size: 15px; visibility: hidden; }
+.contact-field a.on { visibility: visible; }
 
 select.status {
   appearance: none; border: 0; border-radius: 999px; padding: 5px 12px; margin-top: 3px;
@@ -79,8 +86,8 @@ select.status[data-s="message sent"] { background: var(--sent); color: var(--sen
 select.status[data-s="got reply"] { background: var(--reply); color: var(--reply-t); }
 select.status[data-s="hired"] { background: var(--hired); color: var(--hired-t); }
 
-.del { background: none; color: var(--muted); padding: 4px 8px; margin-top: 2px; font-size: 16px; opacity: 0; }
-tr:hover .del, .del:focus { opacity: 1; }
+.del { position: absolute; top: 9px; right: 8px; background: none; color: var(--muted); padding: 4px 8px; font-size: 16px; opacity: 0; }
+.row:hover .del, .del:focus { opacity: 1; }
 .del:hover { color: var(--danger); filter: none; }
 
 .empty { padding: 48px; text-align: center; color: var(--muted); }
@@ -127,3 +134,43 @@ a.button:hover { filter: brightness(0.95); }
 .lb-nav.prev { left: 16px; }
 .lb-nav.next { right: 16px; }
 .lb-count { position: absolute; bottom: 16px; color: rgba(255, 255, 255, 0.8); font-size: 13px; }
+
+/* Tablet: each client becomes a card with its fields regrouped. */
+@media (max-width: 1179px) {
+  main { padding-left: 20px; padding-right: 20px; }
+  .search { flex: 1 1 180px; }
+  .list { background: none; border: 0; display: flex; flex-direction: column; gap: 12px; }
+  .list-head { display: none; }
+  .row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 8px; column-gap: 16px;
+    grid-template-areas: "client status" "contact contact" "message remarks";
+    padding: 12px 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  }
+  .row:last-child { border-bottom: 1px solid var(--line); }
+  .row:hover { background: var(--card); }
+  .client { grid-area: client; }
+  .status-cell { grid-area: status; justify-self: end; margin-right: 32px; }
+  .contact {
+    grid-area: contact; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px 0;
+  }
+  .message { grid-area: message; }
+  .remarks { grid-area: remarks; }
+  .cell[data-label]::before { display: block; }
+  .client input.name { font-size: 16px; }
+  .del { opacity: 1; top: 14px; }
+}
+
+/* Portrait tablets: stack contact fields, give search its own line. */
+@media (max-width: 900px) {
+  .contact { grid-template-columns: minmax(0, 1fr); }
+  .search { order: 10; flex: 1 1 100%; }
+}
+
+/* Small tablets and phones: a single column. */
+@media (max-width: 700px) {
+  main { padding-left: 16px; padding-right: 16px; }
+  .row { grid-template-columns: minmax(0, 1fr); grid-template-areas: "client" "status" "contact" "message" "remarks"; }
+  .status-cell { justify-self: start; margin: 0 0 0 4px; }
+  .contact { grid-template-columns: minmax(0, 1fr); }
+}

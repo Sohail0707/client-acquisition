@@ -4,16 +4,6 @@ import { STATUSES, cap } from "./constants.js";
 import ClientRow from "./ClientRow.jsx";
 import Lightbox from "./Lightbox.jsx";
 
-// Short-text columns widen to fit their longest value (capped), so emails and links aren't cut off.
-const FIT_COLS = [
-  { key: "name", label: "Name" },
-  { key: "profile", label: "Profile", link: true },
-  { key: "email", label: "Email" },
-  { key: "website", label: "Website", link: true },
-  { key: "industry", label: "Industry" },
-];
-const MAX_FIT_CH = 32;
-
 const CSV_COLS = ["name", "profile", "email", "website", "industry", "status", "message", "remarks"];
 
 export default function App() {
@@ -54,17 +44,6 @@ export default function App() {
       window.removeEventListener("drop", block);
     };
   }, []);
-
-  const colWidths = useMemo(
-    () =>
-      Object.fromEntries(
-        FIT_COLS.map(({ key, link }) => {
-          const longest = Math.min(Math.max(0, ...clients.map((c) => (c[key] || "").length)), MAX_FIT_CH);
-          return [`--w-${key}`, `calc(${longest}ch + ${link ? 44 : 18}px)`];
-        })
-      ),
-    [clients]
-  );
 
   const visible = useMemo(() => {
     const q = query.toLowerCase();
@@ -153,32 +132,23 @@ export default function App() {
 
       {error && <div className="error" onClick={() => setError("")}>{error}</div>}
 
-      <div className="card">
-        <table style={colWidths}>
-          <thead>
-            <tr>
-              {FIT_COLS.map(({ key, label }) => (
-                <th key={key}>{label}</th>
-              ))}
-              <th>Status</th><th>Draft message</th><th>Remarks</th><th />
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((c) => (
-              <ClientRow
-                key={c.id}
-                client={c}
-                autoFocus={c.id === focusId}
-                onChange={update}
-                onAddImages={addImages}
-                onRemoveImage={removeImage}
-                onOpenImage={(images, index) => setLightbox({ images, index })}
-                onError={(e) => fail(e, "Upload failed: ")}
-                onDelete={remove}
-              />
-            ))}
-          </tbody>
-        </table>
+      <div className="list">
+        <div className="list-head">
+          <div>Client</div><div>Contact</div><div>Status</div><div>Draft message</div><div>Remarks</div>
+        </div>
+        {visible.map((c) => (
+          <ClientRow
+            key={c.id}
+            client={c}
+            autoFocus={c.id === focusId}
+            onChange={update}
+            onAddImages={addImages}
+            onRemoveImage={removeImage}
+            onOpenImage={(images, index) => setLightbox({ images, index })}
+            onError={(e) => fail(e, "Upload failed: ")}
+            onDelete={remove}
+          />
+        ))}
         {!loading && visible.length === 0 && (
           <div className="empty">{clients.length ? "No clients match." : "No clients yet. Click “Add client”."}</div>
         )}
