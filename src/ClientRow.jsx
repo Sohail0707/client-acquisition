@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { STATUSES, cap } from "./constants.js";
 import Remarks from "./Remarks.jsx";
 
@@ -16,6 +17,20 @@ function LinkField({ value, onChange }) {
   );
 }
 
+const MESSAGE_MAX_HEIGHT = 180;
+
+// Grows with its content up to MESSAGE_MAX_HEIGHT, then scrolls.
+function MessageField({ value, onChange }) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const t = ref.current;
+    t.style.height = "auto";
+    t.style.height = `${Math.min(t.scrollHeight, MESSAGE_MAX_HEIGHT)}px`;
+    t.style.overflowY = t.scrollHeight > MESSAGE_MAX_HEIGHT ? "auto" : "hidden";
+  }, [value]);
+  return <textarea ref={ref} rows={1} value={value} placeholder="Outreach draft…" onChange={(e) => onChange(e.target.value)} />;
+}
+
 export default function ClientRow({ client: c, autoFocus, onChange, onAddImages, onRemoveImage, onOpenImage, onError, onDelete }) {
   const set = (field) => (value) => onChange(c.id, field, value);
   return (
@@ -32,6 +47,7 @@ export default function ClientRow({ client: c, autoFocus, onChange, onAddImages,
           ))}
         </select>
       </td>
+      <td className="message"><MessageField value={c.message ?? ""} onChange={set("message")} /></td>
       <td className="remarks">
         <Remarks
           text={c.remarks}

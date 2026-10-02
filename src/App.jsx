@@ -4,7 +4,7 @@ import { STATUSES, cap } from "./constants.js";
 import ClientRow from "./ClientRow.jsx";
 import Lightbox from "./Lightbox.jsx";
 
-const CSV_COLS = ["name", "profile", "email", "website", "industry", "status", "remarks"];
+const CSV_COLS = ["name", "profile", "email", "website", "industry", "status", "message", "remarks"];
 
 export default function App() {
   const [clients, setClients] = useState([]);
@@ -50,7 +50,7 @@ export default function App() {
     return clients.filter(
       (c) =>
         (!filter || c.status === filter) &&
-        (!q || [c.name, c.profile, c.email, c.website, c.industry, c.remarks].join(" ").toLowerCase().includes(q))
+        (!q || [c.name, c.profile, c.email, c.website, c.industry, c.message, c.remarks].join(" ").toLowerCase().includes(q))
     );
   }, [clients, query, filter]);
 
@@ -136,7 +136,7 @@ export default function App() {
         <table>
           <thead>
             <tr>
-              <th>Name</th><th>Profile</th><th>Email</th><th>Website</th><th>Industry</th><th>Status</th><th>Remarks</th><th />
+              <th>Name</th><th>Profile</th><th>Email</th><th>Website</th><th>Industry</th><th>Status</th><th>Draft message</th><th>Remarks</th><th />
             </tr>
           </thead>
           <tbody>

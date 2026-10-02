@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 export const config = { path: ["/api/*", "/auth/*"] };
 
 const STATUSES = ["fresh", "message sent", "got reply", "hired"];
-const FIELDS = ["name", "profile", "email", "website", "industry", "status", "remarks"];
+const FIELDS = ["name", "profile", "email", "website", "industry", "status", "message", "remarks"];
 const SESSION_COOKIE = "ct_session";
 const STATE_COOKIE = "ct_oauth_state";
 const SESSION_DAYS = 365;
@@ -135,7 +135,7 @@ async function handleApi(req, parts, user) {
 
   if (!id && req.method === "POST") {
     const row = {
-      name: "", profile: "", email: "", website: "", industry: "", status: "fresh", remarks: "", images: [],
+      name: "", profile: "", email: "", website: "", industry: "", status: "fresh", message: "", remarks: "", images: [],
       ...clean(await req.json().catch(() => ({}))),
       id: crypto.randomUUID(),
       created_at: Date.now(),
