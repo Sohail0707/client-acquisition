@@ -20,7 +20,7 @@ export default function Remarks({ text, images = [], onText, onAddImages, onRemo
     const ids = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
     if (ids.length) onAddImages(ids);
     const failed = results.find((r) => r.status === "rejected");
-    if (failed) onError(failed.reason);
+    if (failed) onError(failed.reason, "Upload failed: ");
     items.forEach((i) => URL.revokeObjectURL(i.url));
     setPending((p) => p.filter((x) => !items.includes(x)));
   }

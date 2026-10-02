@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { STATUSES, cap } from "./constants.js";
 import Remarks from "./Remarks.jsx";
 
@@ -76,10 +76,33 @@ function MessageField({ value, onChange }) {
   return <textarea ref={ref} rows={1} value={value} placeholder="Outreach draft…" onChange={(e) => onChange(e.target.value)} />;
 }
 
-export default function ClientRow({ client: c, autoFocus, onChange, onAddImages, onRemoveImage, onOpenImage, onError, onDelete }) {
+function CopyButton({ text, onError }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      onError(e, "Copy failed: ");
+    }
+  }
+
+  return (
+    <button className={`copy${copied ? " copied" : ""}`} onClick={copy} title="Copy draft message">
+      {copied ? "Copied ✓" : "Copy"}
+    </button>
+  );
+}
+
+export default function ClientRow({ client: c, autoFocus, selected, onSelect, onChange, onAddImages, onRemoveImage, onOpenImage, onError, onDelete }) {
   const set = (field) => (value) => onChange(c.id, field, value);
   return (
-    <div className="row">
+    <div className={`row${selected ? " selected" : ""}`} onMouseDown={() => onSelect(c.id)} onFocus={() => onSelect(c.id)}>
       <div className="cell client">
         <Field className="name" value={c.name} placeholder="Name" onChange={set("name")} autoFocus={autoFocus} />
         <Field className="industry" value={c.industry} placeholder="Industry" onChange={set("industry")} />
@@ -98,6 +121,7 @@ export default function ClientRow({ client: c, autoFocus, onChange, onAddImages,
       </div>
       <div className="cell message" data-label="Draft message">
         <MessageField value={c.message ?? ""} onChange={set("message")} />
+        {c.message?.trim() && <CopyButton text={c.message} onError={onError} />}
       </div>
       <div className="cell remarks" data-label="Remarks">
         <Remarks

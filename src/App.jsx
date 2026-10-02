@@ -13,6 +13,8 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("");
   const [focusId, setFocusId] = useState(null);
+  // The last row interacted with stays highlighted, so it's easy to find after visiting a link.
+  const [selectedId, setSelectedId] = useState(null);
   const [user, setUser] = useState(null);
   const [signedOut, setSignedOut] = useState(false);
   const [lightbox, setLightbox] = useState(null);
@@ -75,6 +77,7 @@ export default function App() {
       setFilter("");
       setClients((cs) => [c, ...cs]);
       setFocusId(c.id);
+      setSelectedId(c.id);
     } catch (e) {
       fail(e);
     }
@@ -141,11 +144,13 @@ export default function App() {
             key={c.id}
             client={c}
             autoFocus={c.id === focusId}
+            selected={c.id === selectedId}
+            onSelect={setSelectedId}
             onChange={update}
             onAddImages={addImages}
             onRemoveImage={removeImage}
             onOpenImage={(images, index) => setLightbox({ images, index })}
-            onError={(e) => fail(e, "Upload failed: ")}
+            onError={fail}
             onDelete={remove}
           />
         ))}
