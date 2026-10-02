@@ -8,6 +8,9 @@ const FIELDS = ["name", "profile", "email", "website", "industry", "status", "re
 const SESSION_COOKIE = "ct_session";
 const STATE_COOKIE = "ct_oauth_state";
 const SESSION_DAYS = 365;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGES = 50;
+const UUID = /^[0-9a-f-]{36}$/;
 
 const env = (k) => process.env[k] || "";
 // `netlify dev` sets NETLIFY_DEV; it is never set on deployed sites.
@@ -110,14 +113,17 @@ function clean(body = {}) {
   const out = {};
   for (const f of FIELDS) if (typeof body[f] === "string") out[f] = body[f].slice(0, 5000);
   if (out.status && !STATUSES.includes(out.status)) delete out.status;
+  if (Array.isArray(body.images)) out.images = body.images.filter((i) => UUID.test(i)).slice(0, MAX_IMAGES);
   return out;
 }
 
 async function handleApi(req, parts, user) {
   if (parts[0] === "me") return json({ login: user });
+  if (parts[0] === "images") return handleImages(req, parts[1]);
   if (parts[0] !== "clients") return json({ error: "Not found" }, 404);
 
   const store = getStore({ name: "clients", consistency: "strong" });
+  const images = getStore({ name: "images", consistency: "strong" });
   const id = parts[1];
 
   if (!id && req.method === "GET") {
@@ -129,7 +135,7 @@ async function handleApi(req, parts, user) {
 
   if (!id && req.method === "POST") {
     const row = {
-      name: "", profile: "", email: "", website: "", industry: "", status: "fresh", remarks: "",
+      name: "", profile: "", email: "", website: "", industry: "", status: "fresh", remarks: "", images: [],
       ...clean(await req.json().catch(() => ({}))),
       id: crypto.randomUUID(),
       created_at: Date.now(),
@@ -143,15 +149,43 @@ async function handleApi(req, parts, user) {
     if (!current) return json({ error: "Not found" }, 404);
     const next = { ...current, ...clean(await req.json().catch(() => ({}))) };
     await store.setJSON(id, next);
+    const removed = (current.images || []).filter((i) => !(next.images || []).includes(i));
+    await Promise.all(removed.map((i) => images.delete(i)));
     return json(next);
   }
 
   if (id && req.method === "DELETE") {
+    const current = await store.get(id, { type: "json" });
+    await Promise.all((current?.images || []).map((i) => images.delete(i)));
     await store.delete(id);
     return json({ ok: true });
   }
 
   return json({ error: "Method not allowed" }, 405);
+}
+
+async function handleImages(req, id) {
+  const images = getStore({ name: "images", consistency: "strong" });
+
+  if (!id && req.method === "POST") {
+    const type = req.headers.get("content-type") || "";
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(type)) return json({ error: "Unsupported image type" }, 415);
+    const data = await req.arrayBuffer();
+    if (data.byteLength > MAX_IMAGE_BYTES) return json({ error: "Image too large (max 5 MB)" }, 413);
+    const newId = crypto.randomUUID();
+    await images.set(newId, data, { metadata: { type } });
+    return json({ id: newId }, 201);
+  }
+
+  if (id && UUID.test(id) && req.method === "GET") {
+    const blob = await images.getWithMetadata(id, { type: "arrayBuffer" });
+    if (!blob) return json({ error: "Not found" }, 404);
+    return new Response(blob.data, {
+      headers: { "content-type": blob.metadata.type, "cache-control": "private, max-age=31536000, immutable" },
+    });
+  }
+
+  return json({ error: "Not found" }, 404);
 }
 
 export default async (req) => {

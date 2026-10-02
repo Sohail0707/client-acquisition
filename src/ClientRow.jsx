@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef } from "react";
 import { STATUSES, cap } from "./constants.js";
+import Remarks from "./Remarks.jsx";
 
 const toHref = (v) => (/^https?:\/\//i.test(v) ? v : `https://${v}`);
 
@@ -16,17 +16,7 @@ function LinkField({ value, onChange }) {
   );
 }
 
-function AutoTextarea({ value, onChange }) {
-  const ref = useRef(null);
-  useLayoutEffect(() => {
-    const t = ref.current;
-    t.style.height = "auto";
-    t.style.height = `${t.scrollHeight}px`;
-  }, [value]);
-  return <textarea ref={ref} rows={1} value={value} placeholder="Notes, their problem…" onChange={(e) => onChange(e.target.value)} />;
-}
-
-export default function ClientRow({ client: c, autoFocus, onChange, onDelete }) {
+export default function ClientRow({ client: c, autoFocus, onChange, onAddImages, onRemoveImage, onOpenImage, onError, onDelete }) {
   const set = (field) => (value) => onChange(c.id, field, value);
   return (
     <tr>
@@ -42,7 +32,17 @@ export default function ClientRow({ client: c, autoFocus, onChange, onDelete }) 
           ))}
         </select>
       </td>
-      <td className="remarks"><AutoTextarea value={c.remarks} onChange={set("remarks")} /></td>
+      <td className="remarks">
+        <Remarks
+          text={c.remarks}
+          images={c.images}
+          onText={set("remarks")}
+          onAddImages={(ids) => onAddImages(c.id, ids)}
+          onRemoveImage={(imageId) => onRemoveImage(c.id, imageId)}
+          onOpen={onOpenImage}
+          onError={onError}
+        />
+      </td>
       <td><button className="del" title="Delete" onClick={() => onDelete(c.id)}>✕</button></td>
     </tr>
   );

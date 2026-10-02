@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, UnauthorizedError } from "./api.js";
 import { STATUSES, cap } from "./constants.js";
 import ClientRow from "./ClientRow.jsx";
+import Lightbox from "./Lightbox.jsx";
 
 const CSV_COLS = ["name", "profile", "email", "website", "industry", "status", "remarks"];
 
@@ -14,7 +15,12 @@ export default function App() {
   const [focusId, setFocusId] = useState(null);
   const [user, setUser] = useState(null);
   const [signedOut, setSignedOut] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
   const timers = useRef({});
+  // Latest clients, so back-to-back edits (e.g. two uploads finishing together) build on each other.
+  const clientsRef = useRef(clients);
+  clientsRef.current = clients;
+  const closeLightbox = useCallback(() => setLightbox(null), []);
 
   const fail = (e, prefix = "") => (e instanceof UnauthorizedError ? setSignedOut(true) : setError(prefix + e.message));
 
@@ -28,6 +34,17 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Dropping a file outside a remarks box would otherwise navigate away from the app.
+  useEffect(() => {
+    const block = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files") && e.preventDefault();
+    window.addEventListener("dragover", block);
+    window.addEventListener("drop", block);
+    return () => {
+      window.removeEventListener("dragover", block);
+      window.removeEventListener("drop", block);
+    };
+  }, []);
+
   const visible = useMemo(() => {
     const q = query.toLowerCase();
     return clients.filter(
@@ -37,14 +54,19 @@ export default function App() {
     );
   }, [clients, query, filter]);
 
-  function update(id, field, value) {
-    setClients((cs) => cs.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
+  function update(id, field, value, delay = 400) {
+    clientsRef.current = clientsRef.current.map((c) => (c.id === id ? { ...c, [field]: value } : c));
+    setClients(clientsRef.current);
     const key = id + field;
     clearTimeout(timers.current[key]);
     timers.current[key] = setTimeout(() => {
       api.update(id, { [field]: value }).catch((e) => fail(e, "Save failed: "));
-    }, 400);
+    }, delay);
   }
+
+  const imagesOf = (id) => clientsRef.current.find((c) => c.id === id)?.images || [];
+  const addImages = (id, ids) => update(id, "images", [...imagesOf(id), ...ids], 0);
+  const removeImage = (id, imageId) => update(id, "images", imagesOf(id).filter((i) => i !== imageId), 0);
 
   async function add() {
     try {
@@ -119,7 +141,17 @@ export default function App() {
           </thead>
           <tbody>
             {visible.map((c) => (
-              <ClientRow key={c.id} client={c} autoFocus={c.id === focusId} onChange={update} onDelete={remove} />
+              <ClientRow
+                key={c.id}
+                client={c}
+                autoFocus={c.id === focusId}
+                onChange={update}
+                onAddImages={addImages}
+                onRemoveImage={removeImage}
+                onOpenImage={(images, index) => setLightbox({ images, index })}
+                onError={(e) => fail(e, "Upload failed: ")}
+                onDelete={remove}
+              />
             ))}
           </tbody>
         </table>
@@ -127,6 +159,8 @@ export default function App() {
           <div className="empty">{clients.length ? "No clients match." : "No clients yet. Click “Add client”."}</div>
         )}
       </div>
+
+      {lightbox && <Lightbox images={lightbox.images} start={lightbox.index} onClose={closeLightbox} />}
     </main>
   );
 }
