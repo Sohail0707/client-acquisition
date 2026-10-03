@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ACTIVITY_LEVELS } from "./constants.js";
+import { ACTIVITY_LEVELS, ACTIVITY_REQUIREMENTS } from "./constants.js";
 
 // One-click LinkedIn activity level. Each option carries a short reminder of its criteria.
 export default function ActivityLevel({ value, onChange }) {
@@ -41,7 +41,7 @@ export default function ActivityLevel({ value, onChange }) {
             </button>
           ))}
           <div className="activity-foot">
-            All tiers: 200+ connections.
+            <span>{ACTIVITY_REQUIREMENTS}</span>
             {value && <button onClick={() => pick("")}>Clear</button>}
           </div>
         </div>
