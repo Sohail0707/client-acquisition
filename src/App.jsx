@@ -3,10 +3,22 @@ import { api, UnauthorizedError } from "./api.js";
 import { ACTIVITY_LEVELS, STATUSES, cap } from "./constants.js";
 import ClientRow from "./ClientRow.jsx";
 import Lightbox from "./Lightbox.jsx";
+import { SORTS, sortClients } from "./sort.js";
 
 const CSV_COLS = ["name", "profile", "email", "website", "industry", "status", "activity", "message", "remarks"];
 // Values from older versions of the activity field (e.g. "< 1 month") count as not set.
 const activityOf = (c) => (ACTIVITY_LEVELS.some((l) => l.value === c.activity) ? c.activity : "");
+
+// The chosen sort is remembered per browser. Storage can be unavailable (private mode), so never rely on it.
+const SORT_STORAGE_KEY = "client-tracker:sort";
+const loadSort = () => {
+  try {
+    const v = localStorage.getItem(SORT_STORAGE_KEY);
+    return SORTS.some((s) => s.value === v) ? v : "newest";
+  } catch {
+    return "newest";
+  }
+};
 
 export default function App() {
   const [clients, setClients] = useState([]);
@@ -15,6 +27,10 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("");
   const [activityFilter, setActivityFilter] = useState("all");
+  const [sortKey, setSortKey] = useState(loadSort);
+  // Row order is fixed when the list loads or the sort changes, not on every edit,
+  // so a row never jumps away while you're typing in it.
+  const [order, setOrder] = useState([]);
   const [focusId, setFocusId] = useState(null);
   // The last row interacted with stays highlighted, so it's easy to find after visiting a link.
   const [selectedId, setSelectedId] = useState(null);
@@ -34,6 +50,7 @@ export default function App() {
       .then(([me, list]) => {
         setUser(me.login);
         setClients(list);
+        setOrder(sortClients(list, sortKey).map((c) => c.id));
       })
       .catch(fail)
       .finally(() => setLoading(false));
@@ -50,15 +67,30 @@ export default function App() {
     };
   }, []);
 
+  function changeSort(value) {
+    setSortKey(value);
+    setOrder(sortClients(clientsRef.current, value).map((c) => c.id));
+    try {
+      localStorage.setItem(SORT_STORAGE_KEY, value);
+    } catch {}
+  }
+
+  // Clients added since the last sort appear on top until the next sort.
+  const ordered = useMemo(() => {
+    const byId = new Map(clients.map((c) => [c.id, c]));
+    const known = new Set(order);
+    return [...clients.filter((c) => !known.has(c.id)), ...order.map((id) => byId.get(id)).filter(Boolean)];
+  }, [clients, order]);
+
   const visible = useMemo(() => {
     const q = query.toLowerCase();
-    return clients.filter(
+    return ordered.filter(
       (c) =>
         (!filter || c.status === filter) &&
         (activityFilter === "all" || activityOf(c) === activityFilter) &&
         (!q || [c.name, c.profile, c.email, c.website, c.industry, c.message, c.remarks].join(" ").toLowerCase().includes(q))
     );
-  }, [clients, query, filter, activityFilter]);
+  }, [ordered, query, filter, activityFilter]);
 
   function update(id, field, value, delay = 400) {
     clientsRef.current = clientsRef.current.map((c) => (c.id === id ? { ...c, [field]: value } : c));
@@ -137,6 +169,11 @@ export default function App() {
             <option key={l.value} value={l.value}>{l.label} activity</option>
           ))}
           <option value="">Activity not set</option>
+        </select>
+        <select className="control" value={sortKey} onChange={(e) => changeSort(e.target.value)} title="Sort clients">
+          {SORTS.map((s) => (
+            <option key={s.value} value={s.value}>Sort: {s.label}</option>
+          ))}
         </select>
         <button className="ghost" onClick={exportCsv}>Export CSV</button>
         <button onClick={add}>+ Add client</button>
