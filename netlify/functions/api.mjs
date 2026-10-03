@@ -4,9 +4,8 @@ import crypto from "node:crypto";
 export const config = { path: ["/api/*", "/auth/*"] };
 
 const STATUSES = ["fresh", "message sent", "got reply", "hired"];
-const FIELDS = ["name", "profile", "email", "website", "industry", "status", "message", "remarks"];
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+const FIELDS = ["name", "profile", "email", "website", "industry", "status", "activity", "message", "remarks"];
+const ACTIVITY = ["", "high", "medium", "low"];
 const SESSION_COOKIE = "ct_session";
 const STATE_COOKIE = "ct_oauth_state";
 const SESSION_DAYS = 365;
@@ -111,24 +110,11 @@ async function handleAuth(req, url, action) {
   return json({ error: "Not found" }, 404);
 }
 
-// LinkedIn activity check: months map to 1 (reacted/reposted) or 2 (posted/commented).
-function cleanLinkedin(li) {
-  const months = {};
-  for (const [k, v] of Object.entries(li.months || {}).slice(0, 36)) if (MONTH.test(k) && (v === 1 || v === 2)) months[k] = v;
-  return {
-    months,
-    lastActive: ISO_DATE.test(li.lastActive) ? li.lastActive : "",
-    connections200: li.connections200 === true,
-    checkedAt: ISO_DATE.test(li.checkedAt) ? li.checkedAt : "",
-  };
-}
-
 function clean(body = {}) {
   const out = {};
   for (const f of FIELDS) if (typeof body[f] === "string") out[f] = body[f].slice(0, 5000);
   if (out.status && !STATUSES.includes(out.status)) delete out.status;
-  if (body.linkedin === null) out.linkedin = null;
-  else if (body.linkedin && typeof body.linkedin === "object") out.linkedin = cleanLinkedin(body.linkedin);
+  if ("activity" in out && !ACTIVITY.includes(out.activity)) delete out.activity;
   if (Array.isArray(body.images)) out.images = body.images.filter((i) => UUID.test(i)).slice(0, MAX_IMAGES);
   return out;
 }
@@ -151,7 +137,7 @@ async function handleApi(req, parts, user) {
 
   if (!id && req.method === "POST") {
     const row = {
-      name: "", profile: "", email: "", website: "", industry: "", status: "fresh", linkedin: null, message: "", remarks: "", images: [],
+      name: "", profile: "", email: "", website: "", industry: "", status: "fresh", activity: "", message: "", remarks: "", images: [],
       ...clean(await req.json().catch(() => ({}))),
       id: crypto.randomUUID(),
       created_at: Date.now(),

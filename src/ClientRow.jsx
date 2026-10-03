@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { STATUSES, cap } from "./constants.js";
-import ActivityCheck from "./ActivityCheck.jsx";
+import ActivityLevel from "./ActivityLevel.jsx";
 import Remarks from "./Remarks.jsx";
 
 const toHref = (v) => (/^https?:\/\//i.test(v) ? v : `https://${v}`);
@@ -119,7 +119,7 @@ export default function ClientRow({ client: c, autoFocus, selected, onSelect, on
             <option key={s} value={s}>{cap(s)}</option>
           ))}
         </select>
-        <ActivityCheck value={c.linkedin} onChange={set("linkedin")} />
+        <ActivityLevel value={c.activity ?? ""} onChange={set("activity")} />
       </div>
       <div className="cell message" data-label="Draft message">
         <MessageField value={c.message ?? ""} onChange={set("message")} />

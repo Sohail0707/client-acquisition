@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, UnauthorizedError } from "./api.js";
-import { STATUSES, cap } from "./constants.js";
-import { CATEGORIES, CATEGORY_ORDER, classify } from "./linkedin.js";
+import { ACTIVITY_LEVELS, STATUSES, cap } from "./constants.js";
 import ClientRow from "./ClientRow.jsx";
 import Lightbox from "./Lightbox.jsx";
 
-const CSV_COLS = ["name", "profile", "email", "website", "industry", "status", "linkedin_category", "linkedin_last_active", "message", "remarks"];
-const csvValue = (c, key) =>
-  key === "linkedin_category" ? CATEGORIES[classify(c.linkedin).key].label
-  : key === "linkedin_last_active" ? c.linkedin?.lastActive
-  : c[key];
+const CSV_COLS = ["name", "profile", "email", "website", "industry", "status", "activity", "message", "remarks"];
+// Values from older versions of the activity field (e.g. "< 1 month") count as not set.
+const activityOf = (c) => (ACTIVITY_LEVELS.some((l) => l.value === c.activity) ? c.activity : "");
 
 export default function App() {
   const [clients, setClients] = useState([]);
@@ -17,7 +14,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [activityFilter, setActivityFilter] = useState("all");
   const [focusId, setFocusId] = useState(null);
   // The last row interacted with stays highlighted, so it's easy to find after visiting a link.
   const [selectedId, setSelectedId] = useState(null);
@@ -58,10 +55,10 @@ export default function App() {
     return clients.filter(
       (c) =>
         (!filter || c.status === filter) &&
-        (categoryFilter === "all" || classify(c.linkedin).key === categoryFilter) &&
+        (activityFilter === "all" || activityOf(c) === activityFilter) &&
         (!q || [c.name, c.profile, c.email, c.website, c.industry, c.message, c.remarks].join(" ").toLowerCase().includes(q))
     );
-  }, [clients, query, filter, categoryFilter]);
+  }, [clients, query, filter, activityFilter]);
 
   function update(id, field, value, delay = 400) {
     clientsRef.current = clientsRef.current.map((c) => (c.id === id ? { ...c, [field]: value } : c));
@@ -82,7 +79,7 @@ export default function App() {
       const c = await api.create();
       setQuery("");
       setFilter("");
-      setCategoryFilter("all");
+      setActivityFilter("all");
       setClients((cs) => [c, ...cs]);
       setFocusId(c.id);
       setSelectedId(c.id);
@@ -103,7 +100,7 @@ export default function App() {
 
   function exportCsv() {
     const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const csv = [CSV_COLS.join(","), ...clients.map((c) => CSV_COLS.map((k) => esc(csvValue(c, k))).join(","))].join("\n");
+    const csv = [CSV_COLS.join(","), ...clients.map((c) => CSV_COLS.map((k) => esc(k === "activity" ? activityOf(c) : c[k])).join(","))].join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = "clients.csv";
@@ -134,11 +131,12 @@ export default function App() {
             <option key={s} value={s}>{cap(s)}</option>
           ))}
         </select>
-        <select className="control" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-          <option value="all">All LinkedIn</option>
-          {CATEGORY_ORDER.map((k) => (
-            <option key={k} value={k}>{k === "unchecked" ? "Not checked" : CATEGORIES[k].label}</option>
+        <select className="control" value={activityFilter} onChange={(e) => setActivityFilter(e.target.value)}>
+          <option value="all">All activity</option>
+          {ACTIVITY_LEVELS.map((l) => (
+            <option key={l.value} value={l.value}>{l.label} activity</option>
           ))}
+          <option value="">Activity not set</option>
         </select>
         <button className="ghost" onClick={exportCsv}>Export CSV</button>
         <button onClick={add}>+ Add client</button>
