@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, UnauthorizedError } from "./api.js";
-import { STATUSES, cap } from "./constants.js";
+import { ACTIVITY, STATUSES, cap } from "./constants.js";
 import ClientRow from "./ClientRow.jsx";
 import Lightbox from "./Lightbox.jsx";
 
-const CSV_COLS = ["name", "profile", "email", "website", "industry", "status", "message", "remarks"];
+const CSV_COLS = ["name", "profile", "email", "website", "industry", "status", "activity", "message", "remarks"];
 
 export default function App() {
   const [clients, setClients] = useState([]);
@@ -12,6 +12,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("");
+  const [activityFilter, setActivityFilter] = useState("all");
   const [focusId, setFocusId] = useState(null);
   // The last row interacted with stays highlighted, so it's easy to find after visiting a link.
   const [selectedId, setSelectedId] = useState(null);
@@ -52,9 +53,10 @@ export default function App() {
     return clients.filter(
       (c) =>
         (!filter || c.status === filter) &&
+        (activityFilter === "all" || (c.activity ?? "") === activityFilter) &&
         (!q || [c.name, c.profile, c.email, c.website, c.industry, c.message, c.remarks].join(" ").toLowerCase().includes(q))
     );
-  }, [clients, query, filter]);
+  }, [clients, query, filter, activityFilter]);
 
   function update(id, field, value, delay = 400) {
     clientsRef.current = clientsRef.current.map((c) => (c.id === id ? { ...c, [field]: value } : c));
@@ -75,6 +77,7 @@ export default function App() {
       const c = await api.create();
       setQuery("");
       setFilter("");
+      setActivityFilter("all");
       setClients((cs) => [c, ...cs]);
       setFocusId(c.id);
       setSelectedId(c.id);
@@ -124,6 +127,12 @@ export default function App() {
           <option value="">All statuses</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>{cap(s)}</option>
+          ))}
+        </select>
+        <select className="control" value={activityFilter} onChange={(e) => setActivityFilter(e.target.value)}>
+          <option value="all">All activity</option>
+          {ACTIVITY.map((a) => (
+            <option key={a.value} value={a.value}>{a.value ? a.label : "Not checked"}</option>
           ))}
         </select>
         <button className="ghost" onClick={exportCsv}>Export CSV</button>

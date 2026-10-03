@@ -4,7 +4,8 @@ import crypto from "node:crypto";
 export const config = { path: ["/api/*", "/auth/*"] };
 
 const STATUSES = ["fresh", "message sent", "got reply", "hired"];
-const FIELDS = ["name", "profile", "email", "website", "industry", "status", "message", "remarks"];
+const ACTIVITY = ["", "< 1 month", "1-3 months", "3-6 months"];
+const FIELDS = ["name", "profile", "email", "website", "industry", "status", "activity", "message", "remarks"];
 const SESSION_COOKIE = "ct_session";
 const STATE_COOKIE = "ct_oauth_state";
 const SESSION_DAYS = 365;
@@ -113,6 +114,7 @@ function clean(body = {}) {
   const out = {};
   for (const f of FIELDS) if (typeof body[f] === "string") out[f] = body[f].slice(0, 5000);
   if (out.status && !STATUSES.includes(out.status)) delete out.status;
+  if ("activity" in out && !ACTIVITY.includes(out.activity)) delete out.activity;
   if (Array.isArray(body.images)) out.images = body.images.filter((i) => UUID.test(i)).slice(0, MAX_IMAGES);
   return out;
 }
@@ -135,7 +137,7 @@ async function handleApi(req, parts, user) {
 
   if (!id && req.method === "POST") {
     const row = {
-      name: "", profile: "", email: "", website: "", industry: "", status: "fresh", message: "", remarks: "", images: [],
+      name: "", profile: "", email: "", website: "", industry: "", status: "fresh", activity: "", message: "", remarks: "", images: [],
       ...clean(await req.json().catch(() => ({}))),
       id: crypto.randomUUID(),
       created_at: Date.now(),
