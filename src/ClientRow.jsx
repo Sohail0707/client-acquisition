@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ACTIVITY, STATUSES, cap } from "./constants.js";
+import { STATUSES, cap } from "./constants.js";
+import ActivityCheck from "./ActivityCheck.jsx";
 import Remarks from "./Remarks.jsx";
 
 const toHref = (v) => (/^https?:\/\//i.test(v) ? v : `https://${v}`);
@@ -118,17 +119,7 @@ export default function ClientRow({ client: c, autoFocus, selected, onSelect, on
             <option key={s} value={s}>{cap(s)}</option>
           ))}
         </select>
-        <select
-          className="status activity"
-          data-a={c.activity ?? ""}
-          value={c.activity ?? ""}
-          title="How recently they posted or commented on LinkedIn"
-          onChange={(e) => set("activity")(e.target.value)}
-        >
-          {ACTIVITY.map((a) => (
-            <option key={a.value} value={a.value}>{a.label}</option>
-          ))}
-        </select>
+        <ActivityCheck value={c.linkedin} onChange={set("linkedin")} />
       </div>
       <div className="cell message" data-label="Draft message">
         <MessageField value={c.message ?? ""} onChange={set("message")} />
